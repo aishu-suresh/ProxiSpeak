@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProxiSpeak - Test Client</title>
+    <style>
+        body { margin: 0; background: #222; color: white; font-family: sans-serif; overflow: hidden; }
+        #canvas { position: relative; width: 100vw; height: 100vh; background: #333; }
+        .avatar {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #4CAF50;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            transform: translate(-50%, -50%);
+            transition: background 0.2s;
+        }
+        .avatar.self { background: #2196F3; }
+        #instructions {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="instructions">Use Arrow Keys or WASD to move your avatar around.</div>
+    <div id="canvas"></div>
+
+    <!-- Socket.IO Client CDN -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const canvas = document.getElementById('canvas');
+        const avatars = {};
+
+        let myData = {
+            x: Math.floor(Math.random() * 500) + 100,
+            y: Math.floor(Math.random() * 500) + 100,
+            name: 'User-' + Math.floor(Math.random() * 100)
+        };
+
+        socket.on('connect', () => {
+            console.log('Connected to server:', socket.id);
+            socket.emit('join-office', myData);
+        });
+
+        // Render existing users
+        socket.on('current-users', (serverUsers) => {
+            for (let id in serverUsers) {
+                createAvatar(serverUsers[id], id);
+            }
+        });
+
+        // Handle new user joining
+        socket.on('user-joined', (user) => {
+            createAvatar(user, user.id);
+        });
+
+        // Handle movement updates from other users
+        socket.on('player-moved', (data) => {
+            if (avatars[data.id]) {
+                avatars[data.id].style.left = data.x + 'px';
+                avatars[data.id].style.top = data.y + 'px';
+            }
+        });
+
+        // Remove disconnected user's avatar
+        socket.on('user-disconnected', (id) => {
+            if (avatars[id]) {
+                avatars[id].remove();
+                delete avatars[id];
+            }
+        });
+
+        function createAvatar(user, userId) {
+            const el = document.createElement('div');
+            el.className = 'avatar' + (userId === socket.id ? ' self' : '');
+            el.innerText = user.name;
+            el.style.left = user.x + 'px';
+            el.style.top = user.y + 'px';
+            canvas.appendChild(el);
+            avatars[userId] = el;
+        }
+
+        // Keyboard movement handling (WASD / Arrow Keys)
+        window.addEventListener('keydown', (e) => {
+            let speed = 10;
+            if (e.key === 'ArrowUp' || e.key === 'w') myData.y -= speed;
+            if (e.key === 'ArrowDown' || e.key === 's') myData.y += speed;
+            if (e.key === 'ArrowLeft' || e.key === 'a') myData.x -= speed;
+            if (e.key === 'ArrowRight' || e.key === 'd') myData.x += speed;
+
+            // Move self avatar locally
+            if (avatars[socket.id]) {
+                avatars[socket.id].style.left = myData.x + 'px';
+                avatars[socket.id].style.top = myData.y + 'px';
+            }
+
+            // Emit position update to server
+            socket.emit('player-movement', { x: myData.x, y: myData.y });
+        });
+    </script>
+</body>
+</html>
