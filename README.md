@@ -188,6 +188,7 @@ Run the complete multi-container stack with MongoDB, Redis, Node Backend, and Ng
 docker-compose up --build -d
 Frontend Client: http://localhost:3000
 Backend API & Signaling: http://localhost:5000
+
 14. Known Limitations & Future Roadmap
 Browser Autoplay Policies: Modern browsers require an explicit user gesture (click or keypress) before unmuting the Web Audio AudioContext. ProxiSpeak automatically detects suspended contexts and provides a one-click unlock banner.
 Mesh Topology Scale: The current proximity-bounded peer-to-peer mesh handles 50+ concurrent users distributed across offices. If all 50 users congregate inside a single 100px cluster, bandwidth increases. Section 6.2 of docs/architecture.md outlines the Selective Forwarding Unit (SFU) migration path for high-density mega-crowds.
